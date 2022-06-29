@@ -1,14 +1,16 @@
-#include "userprogs1.h"
-#include "userprogs2.h"
-#include "types.h"
-#include "riscv.h"
+#include "lib/userprogs1.h"
+#include "lib/userprogs2.h"
+#include "lib/types.h"
+#include "lib/riscv.h"
+#include "lib/hardware.h"
 
 extern int main(void);
 extern void ex(void);
 extern void printstring(char *);
 extern void printhex(uint64);
+extern PCB pcb[];
 
-void copyprog(int process) {
+void copyprog(int process, uint64 address) {
   // copy user code to memory inefficiently... :)
   unsigned char* from;
   int user_bin_len;
@@ -18,10 +20,21 @@ void copyprog(int process) {
     default: printstring("unknown process!\n"); printhex(process); printstring("\n"); break;
   }
 
-  unsigned char* to   = (unsigned char *)0x80100000;
+  unsigned char* to   = (unsigned char *)address;
   for (int i=0; i<user_bin_len; i++) {
     *to++ = *from++;
   }
+}
+
+void timerinit(void){
+
+  int interval = 1000000;
+
+  *(volatile uint64*)CLINT_MTIMECMP = *(volatile uint64*)CLINT_MTIME + interval;
+
+  w_mstatus(r_mstatus() | MSTATUS_MIE);
+  w_mie(r_mie() | MIE_MTIE);
+
 }
 
 void setup(void) {
@@ -44,17 +57,25 @@ void setup(void) {
   w_satp(0);
 
   // configure Physical Memory Protection to give user mode access to all of physical memory.
-  w_pmpaddr0(0x3fffffffffffffull);
-  w_pmpcfg0(0xf);            // full access
-
-  // TODO 3.1: Add configuration for PMP so that the I/O and kernel address space is protected
-
-  copyprog(0);
-
-  // TODO 3.2: Add initalization of correct values in the PCB for all processes.
+  w_pmpaddr0(0x80000000ull >> 2);
+  w_pmpcfg0(0x0f0000);
+  w_pmpaddr1(0x80100000ull >> 2);
+  //w_pmpcfg1(0x0); 
+  w_pmpaddr2(0xffffffffull >> 2);
+  //w_pmpcfg2(0xf);            // full access
+  
+  copyprog(0, 0x80100000);
+  copyprog(1, 0x80200000);
+  
+  pcb[0].pc = 0x80100000;
+  pcb[0].sp = 0x80102000;
+  pcb[1].pc = 0x80200000;
+  pcb[1].sp = 0x80202000;
 
   // set M Exception Program Counter to main, for mret, requires gcc -mcmodel=medany
   w_mepc((uint64)0x80100000);
+
+  timerinit();
 
   // switch to user mode (configured in mstatus) and jump to address in mepc CSR -> main().
   asm volatile("mret");

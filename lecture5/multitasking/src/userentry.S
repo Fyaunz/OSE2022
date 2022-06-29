@@ -1,7 +1,9 @@
 	.section .text
 	.global _entry
 _entry:
-// TODO 3.1: add stack pointer initialization here
+	la      sp, userstack
+	li	    a0, 4096
+	add     sp, sp, a0
 
 	jal	main
 goaway:

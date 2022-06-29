@@ -8,10 +8,7 @@ SECTIONS
    * where qemu's -kernel jumps.
    */
 
-  /* TODO 3.2: Create separate linker scripts to link user1 at 0x8010_0000, user2 at 0x8020_0000 and so on.
-               Also remember to change the Makefile accordingly!
-   */
-  . = 0x80100000;
+  . = 0x80200000;
 
   .text : {
     *(.text .text.*)

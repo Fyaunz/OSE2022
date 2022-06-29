@@ -2,15 +2,13 @@
 .globl exception
 .align 4
 
-// TODO 3.2: Add code to pass the value of SP after all registers are saved to the exception function
-
 ex:
         // make room to save registers.
         addi sp, sp, -256
 
         // save the registers.
         sd ra, 0(sp)
-        sd sp, 8(sp)
+        //sd sp, 8(sp)
         sd gp, 16(sp)
         sd tp, 24(sp)
         sd t0, 32(sp)
@@ -40,13 +38,17 @@ ex:
         sd t4, 224(sp)
         sd t5, 232(sp)
         sd t6, 240(sp)
+        
+        mv a0, sp
 
         // call the C trap handler in trap.c
         call exception
 
+        mv sp, a1
+
         // restore registers.
         ld ra, 0(sp)
-        ld sp, 8(sp)
+        //ld sp, 8(sp)
         ld gp, 16(sp)
         ld tp, 24(sp)
         ld t0, 32(sp)
