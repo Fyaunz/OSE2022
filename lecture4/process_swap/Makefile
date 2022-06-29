@@ -4,35 +4,48 @@ CC=riscv64-unknown-elf-gcc
 CFLAGS=-g -mcmodel=medany -mno-relax -I.
 OBJCOPY=riscv64-unknown-elf-objcopy
 
-KERNELDEPS = hardware.h riscv.h types.h 
+KERNELDEPS = ./lib/hardware.h ./lib/riscv.h ./lib/types.h 
 KERNELOBJS = boot.o kernel.o ex.o setup.o
-USERDEPS = riscv.h types.h
-USEROBJS = user1.o
+USERDEPS = ./lib/riscv.h ./lib/types.h
+USEROBJS = user1.o user2.o
 
-%.o: %.c $(KERNELDEPS) $(USERDEPS)
+%.o: ./src/%.c $(KERNELDEPS) $(USERDEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-%.o: %.S $(KERNELDEPS) $(USERDEPS)
+%.o: ./src/%.S $(KERNELDEPS) $(USERDEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 all:    userprogs1.h kernel
 
 kernel: $(KERNELOBJS) $(KERNELDEPS) userprogs1.h
 	$(CC) -g -ffreestanding -fno-common -nostdlib -mno-relax \
-	      -mcmodel=medany -Wl,-T kernel.ld $(KERNELOBJS) -o kernel
+	      -mcmodel=medany -Wl,-T ./src/kernel.ld $(KERNELOBJS) -o kernel
 	$(OBJCOPY) -O binary kernel kernel.bin
 
 userprogs1.h: $(USEROBJS) $(USERDEPS)
-	$(CC) $(CFLAGS) -c user1.c
-	$(CC) $(CFLAGS) -c userentry.S
+	$(CC) $(CFLAGS) -c ./src/user1.c
+	$(CC) $(CFLAGS) -c ./src/userentry.S
 	$(CC) -g -ffreestanding -fno-common -nostdlib -mno-relax \
-	      -mcmodel=medany   -Wl,-T user.ld userentry.o user1.o -o user1
+	      -mcmodel=medany   -Wl,-T ./src/user.ld userentry.o user1.o -o user1
 	$(OBJCOPY) -O binary user1 user1.bin
-	xxd -i user1.bin > userprogs1.h
+	xxd -i user1.bin > ./lib/userprogs1.h
 
-run:	userprogs1.h kernel
+userprogs2.h: $(USEROBJS) $(USERDEPS)
+	$(CC) $(CFLAGS) -c ./src/user2.c
+	$(CC) $(CFLAGS) -c ./src/userentry.S
+	$(CC) -g -ffreestanding -fno-common -nostdlib -mno-relax \
+	      -mcmodel=medany   -Wl,-T ./src/user.ld userentry.o user2.o -o user2
+	$(OBJCOPY) -O binary user2 user2.bin
+	xxd -i user2.bin > ./lib/userprogs2.h
+
+run:	userprogs1.h userprogs2.h kernel
 	qemu-system-riscv64 -nographic -machine virt -smp 1 -bios none -kernel kernel
-	
+
+rundbg:	userprogs1.h kernel
+	qemu-system-riscv64 -nographic -machine virt -smp 1 -bios none -kernel kernel -s -S
+
+startdbg:
+	riscv64-unknown-elf-gdb kernel -ex 'target remote localhost:1234'
 clean:
-	-@rm -f *.o *.bin kernel user1 userprogs1.h
+	-@rm -f *.o *.bin kernel user1 ./lib/userprogs1.h
 

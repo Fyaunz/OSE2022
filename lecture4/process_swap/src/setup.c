@@ -1,6 +1,7 @@
-#include "userprogs1.h"
-#include "types.h"
-#include "riscv.h"
+#include "lib/userprogs1.h"
+#include "lib/userprogs2.h"
+#include "lib/types.h"
+#include "lib/riscv.h"
 
 extern int main(void);
 extern void ex(void);
@@ -9,8 +10,24 @@ extern void printhex(uint64);
 
 void copyprog(int process) {
   // TODO: copy user code to memory at address 0x8010_0000
-
+  switch (process) {
+    case 0:
+      uint8_t* pointer0 = 0x80100000;
+      for(int i = 0;i<user1_bin_len;i++){
+        *pointer0 = user1_bin[i];
+        *pointer0++;
+      }
+      break;
+    case 1:
+      uint8_t* pointer1 = 0x80100000;
+      for(int i = 0;i<user2_bin_len;i++){
+        *pointer1 = user2_bin[i];
+        *pointer1++;
+      }
+      break;
+  }
 }
+
 
 void setup(void) {
   // set M Previous Privilege mode to User so mret returns to user mode.
@@ -36,7 +53,7 @@ void setup(void) {
   w_pmpcfg0(0xf);
 
   // copy the first process into memory
-  copyprog(1);
+  copyprog(0);
 
   // set M Exception Program Counter to main, for mret, requires gcc -mcmodel=medany
   w_mepc((uint64)0x80100000);

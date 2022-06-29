@@ -1,4 +1,4 @@
-#include "types.h"
+#include "lib/types.h"
 
 uint64 syscall(uint64 nr, uint64 param) {
     uint64 retval;
@@ -10,6 +10,7 @@ uint64 syscall(uint64 nr, uint64 param) {
 }
 
 int main(void) {
-    // TODO: Add code for the user process
+    syscall(2, 'b');
+    syscall(2, '2');
+    syscall(42,' ');
 }
-

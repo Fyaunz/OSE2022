@@ -40,6 +40,14 @@ void putachar(char c) {
     uart0->THR = c; // then write the character
 }
 
+char getchar(void) {
+    char data;
+    while(uart0->LSR & (1<<0) = 0)
+        ;
+    data = uart0->THR;
+    return data;
+}
+
 void printstring(char *s) {
     while (*s) {     // as long as the character is not null
         putachar(*s); // output the character

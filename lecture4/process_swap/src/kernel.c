@@ -1,6 +1,6 @@
-#include "types.h"
-#include "riscv.h"
-#include "hardware.h"
+#include "lib/types.h"
+#include "lib/riscv.h"
+#include "lib/hardware.h"
 
 extern int main(void);
 extern void ex(void);
@@ -11,9 +11,10 @@ __attribute__ ((aligned (16))) char kernelstack[4096];
 void printhex(uint64);
 void putachar(char);
 void copyprog(int);
+char readachar(void);
+uint32 process = 1;
 
 volatile struct uart* uart0 = (volatile struct uart *)0x10000000;
-
 // our syscalls
 void printstring(char *s) {
     while (*s) {     // as long as the character is not null
@@ -81,6 +82,9 @@ void exception(void) {
              // Implementation: 
              // 1. call copyprog to load the new process
              // 2. set the pc (for mret) to the correct value
+      copyprog(process);
+      process = (process+1)%2;
+      pc = 0x80100000 - 4;
 		
              break;
     default: printstring("Invalid syscall: "); printhex(nr); printstring("\n");

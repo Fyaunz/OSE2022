@@ -5,6 +5,8 @@
 extern int main(void);
 extern void ex(void);
 extern void printstring(char *s);
+char getachar(void);
+void printstring(char *s);
 
 __attribute__ ((aligned (16))) char stack0[4096];
 
@@ -12,11 +14,31 @@ void printhex(uint64);
 
 volatile struct uart* uart0 = (volatile struct uart *)0x10000000;
 
-// TODO: implement our syscalls here:
+// Syscall 0: printstring. Takes a char *, prints the string to the UART, returns nothing
+// Syscall 1: putachar.    Takes a char, prints the character to the UART, returns nothing
+// Syscall 2: getachar.    Takes no parameter, reads a character from the UART (keyboard), returns the char
 
-// Syscall 1: printstring. Takes a char *, prints the string to the UART, returns nothing
-// Syscall 2: putachar.    Takes a char, prints the character to the UART, returns nothing
-// Syscall 3: getachar.    Takes no parameter, reads a character from the UART (keyboard), returns the char
+void putachar(uint64 c){
+  while ((uart0->LSR & (1<<5) == 0))
+    ;
+  uart0->THR = c;
+}
+
+char getachar(void){
+  char data;
+  while ((uart0->LSR & (1<<0)) == 0)
+  ;
+  data = uart0->THR;
+  return data;
+}
+
+void printstring(char *s){
+  while (*s) {
+    putachar(*s);
+    s++;
+  }
+  
+}
 
 // This is a useful helper function (one you implemented putachar and printstring)
 void printhex(uint64 x) {
@@ -41,20 +63,38 @@ void exception(void) {
   uint64 nr;
   uint64 param;
   uint64 retval = 0;
+  uint64 zero = 0;
 
   // all exceptions end up here - so far, we assume that only syscalls occur
   // will have to decode the reason for the exception later!
 
-  // TODO: copy registers a0 and a1 to variables nr and param
+asm volatile ( "add %0, x0, a7" : "=r" (nr));
 
-  // TODO: decode syscall number and jump to the appropriate function
-  //       remember to check for invalid syscall numbers!
+asm volatile ( "add %0, x0, a0" : "=r" (param));
+
+switch (nr)
+{
+case 0:
+  printstring(param);
+  break;
+case 1:
+  putachar(param);
+  break;
+case 2:
+  retval = getachar();
+  break;
+
+default:
+  printstring("This is not a valid system call\n");
+  break;
+}
 
   // Here, we adjust return value - we want to return to the instruction _after_ the ecall! (at address mepc+4)
   uint64 pc = r_mepc();
   w_mepc(pc+4);
 
-  // TODO: pass the return value back in a0
+  asm volatile ("add a0, x0, %0" : : "r"(retval));
 
+  // TODO: pass the return value back in a0
   // this function returns to ex.S
 }

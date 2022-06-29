@@ -3,15 +3,28 @@
 uint64 syscall(uint64 nr, uint64 param) {
     uint64 retval;
 
-    // TODO: add inline assembler code to copy the value in variable nr to register a7
+    asm volatile("add a7, %0, x0" : : "r" (nr));
+    asm volatile("add a0, %0, x0" : : "r" (param));
 
     // here's our ecall!
     asm volatile("ecall");
 
-    // TODO:add inline assembler code to copy the return value in register a0 to variable retval
+    asm volatile("add %0, a0, x0 " : "=r" (retval));
 
     // Here we return the return value...
     return retval;
+}
+
+void sysputachar(char c){
+  syscall(1, c);
+}
+
+char sysgetachar(void){
+  syscall(2, 0);
+}
+
+void sysprintstring(char *s){
+  syscall(0, s);
 }
 
 int main(void) {
