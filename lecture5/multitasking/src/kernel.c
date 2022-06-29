@@ -62,8 +62,8 @@ void printhex(uint64 x)
   printstring("\n");
 }
 
-void yield(uint64 pc, stackframe* s){
-  pcb[current_process].sp = s;
+yieldRet yield(uint64 pc, stackframe* s){
+    pcb[current_process].sp = s;
     pcb[current_process].pc = pc;
 
     printhex(s);
@@ -78,6 +78,13 @@ void yield(uint64 pc, stackframe* s){
 
     printhex(s);
     printhex(pc);
+
+    yieldRet ret;
+    ret.pc = pc;
+    ret.s = s;
+    return ret;
+
+
 }
 
 
@@ -97,7 +104,12 @@ void exception(stackframe* s)
   if ((r_mcause() & (1ULL << 63)) != 0)
   {
     printstring("Timer\n");
-    yield(pc, s);
+
+    yieldRet ret = yield(pc, s);
+
+    s = ret.s;
+    pc = ret.pc;
+
     *(volatile uint64 *)CLINT_MTIMECMP = *(volatile uint64 *)CLINT_MTIMECMP + 1000000;
     w_mepc(pc);
   }
@@ -126,7 +138,23 @@ void exception(stackframe* s)
   case 3:
     retval = readachar();
     break;
-  
+  case 23:
+    pcb[current_process].sp = s;
+    pcb[current_process].pc = pc;
+
+    printhex(s);
+    printhex(pc);
+
+    current_process++;
+    if (current_process > 1)
+      current_process = 0;
+
+    pc = pcb[current_process].pc;
+    s = pcb[current_process].sp;
+
+    printhex(s);
+    printhex(pc);
+    break;
   case 42: 
 
     if (current_process == 0)
