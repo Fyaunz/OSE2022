@@ -56,12 +56,6 @@ typedef struct stackframe{
     uint64 t6; 
 } stackframe;
 
-typedef struct yieldRet{
-  uint64 pc;
-  stackframe* s; 
-} yieldRet;
-
-
 #define CLINT 0x2000000
 #define CLINT_MTIMECMP 0x2004000ULL
 #define CLINT_MTIME 0x200BFF8ULL

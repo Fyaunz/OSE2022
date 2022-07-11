@@ -62,32 +62,6 @@ void printhex(uint64 x)
   printstring("\n");
 }
 
-yieldRet yield(uint64 pc, stackframe* s){
-    pcb[current_process].sp = s;
-    pcb[current_process].pc = pc;
-
-    printhex(s);
-    printhex(pc);
-
-    current_process++;
-    if (current_process > 1)
-      current_process = 0;
-
-    pc = pcb[current_process].pc;
-    s = pcb[current_process].sp;
-
-    printhex(s);
-    printhex(pc);
-
-    yieldRet ret;
-    ret.pc = pc;
-    ret.s = s;
-    return ret;
-
-
-}
-
-
 // This is the C code part of the exception handler
 // "exception" is called from the assembler function "ex" in ex.S with registers saved on the stack
 void exception(stackframe* s)
@@ -104,18 +78,10 @@ void exception(stackframe* s)
   if ((r_mcause() & (1ULL << 63)) != 0)
   {
     printstring("Timer\n");
-
-    yieldRet ret = yield(pc, s);
-
-    s = ret.s;
-    pc = ret.pc;
-
+    nr = 23;
     *(volatile uint64 *)CLINT_MTIMECMP = *(volatile uint64 *)CLINT_MTIMECMP + 1000000;
-    w_mepc(pc);
-  }
-  else
-  {
-    if (r_mcause() != 8)
+    pc = pc -4;
+  } else if (r_mcause() != 8)
     {
       printstring("mcause:");
       printhex(r_mcause());
@@ -125,7 +91,6 @@ void exception(stackframe* s)
       printhex(r_mtval());
       return -1;
     }
-  
 
   switch (nr)
   {
@@ -175,14 +140,8 @@ void exception(stackframe* s)
   }
 
   // adjust return value - we want to return to the instruction _after_ the ecall! (at address mepc+4)
-  
-  // FIXME: Figure out how to allign riscv instructions to 4 Byte, some only have 2 
     w_mepc(pc + 4);
   
-  }
-  
-  
-
   // pass the return value back in a0
   asm volatile("mv a0, %0"
                :
